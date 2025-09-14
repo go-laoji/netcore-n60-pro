@@ -143,12 +143,6 @@ jobs:
         chmod +x $DIY_P2_SH
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
-    
-    - name: Install argon
-      run: |
-        cd openwrt/package/lean
-        rm -rf luci-theme-argon
-        git clone -b master https://github.com/jerrykuku/luci-theme-argon.git luci-theme-argon
 
     - name: SSH connection to Actions
       uses: P3TERX/ssh2actions@v1.0.0
@@ -165,6 +159,13 @@ jobs:
         make download -j$(nproc)
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
+
+    - name: Install argon
+      run: |
+        rm -rf rm -rf feeds/smpackage/luci-theme-argon
+        cd openwrt/package/lean
+        rm -rf luci-theme-argon
+        git clone -b master https://github.com/jerrykuku/luci-theme-argon.git luci-theme-argon
 
     - name: fix libxcrypt
       run: |
