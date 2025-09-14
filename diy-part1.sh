@@ -26,6 +26,3 @@ chmod -R 755 ./package/luci-app-adguardhome/*
 # echo 'src-git passwall_package https://github.com/xiaorouji/openwrt-passwall-packages' >>feeds.conf.default
 sed -i '$a src-git smpackage https://github.com/kenzok8/small-package' feeds.conf.default
 rm -rf feeds/smpackage/{base-files,dnsmasq,firewall*,fullconenat,libnftnl,nftables,ppp,opkg,ucl,upx,vsftpd*,miniupnpd-iptables,wireless-regdb}
-
-# fix: libxcrypt 编译错误
-sed -i '2i PKG_FORTIFY_SOURCE=0' package/feeds/packages/libxcrypt/Makefile

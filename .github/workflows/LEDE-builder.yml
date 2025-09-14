@@ -166,6 +166,11 @@ jobs:
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
+    - name: fix libxcrypt
+      run: |
+        cd openwrt/package/feeds/packages/libxcrypt
+        sed -i '2i PKG_FORTIFY_SOURCE=0' Makefile
+
     - name: Compile the firmware
       id: compile
       run: |
