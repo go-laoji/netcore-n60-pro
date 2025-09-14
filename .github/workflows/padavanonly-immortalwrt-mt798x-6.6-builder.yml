@@ -148,8 +148,7 @@ jobs:
 
     - name: fix libxcrypt
       run: |
-        cd openwrt/package/feeds/packages/libxcrypt
-        sed -i '2i PKG_FORTIFY_SOURCE=0' Makefile
+        [ -e openwrt/package/feeds/packages/libxcrypt/Makefile ] && sed -i '2i PKG_FORTIFY_SOURCE=0' openwrt/package/feeds/packages/libxcrypt/Makefile
 
     - name: Compile the firmware
       id: compile
