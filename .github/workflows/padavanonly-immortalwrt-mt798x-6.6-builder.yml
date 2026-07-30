@@ -65,16 +65,21 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P1_SH
 
-    - name: load small package feed
+    - name: Prepare custom feeds
       run: |
         cd openwrt
         sed -i '1i src-git kenzo https://github.com/kenzok8/openwrt-packages' feeds.conf.default
         sed -i '2i src-git small https://github.com/kenzok8/small' feeds.conf.default
-        ./scripts/feeds update -a && rm -rf feeds/luci/applications/luci-app-mosdns
-        rm -rf feeds/packages/net/{alist,adguardhome,mosdns,xray*,v2ray*,sing*,smartdns} feeds/packages/utils/v2dat feeds/packages/lang/golang
+        ./scripts/feeds update -a
+        rm -rf feeds/luci/applications/{luci-app-dae,luci-app-daed,luci-app-mosdns}
+        rm -rf feeds/packages/net/{alist,adguardhome,dae,daed,mosdns,xray*,v2ray*,sing*,smartdns} feeds/packages/utils/v2dat feeds/packages/lang/golang
+        rm -rf feeds/small/luci-app-fchomo
+        sed -i 's/+USE_APK:wget-any +!USE_APK:wget/+wget/' feeds/kenzo/luci-theme-argon/Makefile
         git clone https://github.com/kenzok8/golang -b 1.26 feeds/packages/lang/golang
-        ./scripts/feeds install -a
-
+        git clone --depth=1 --filter=blob:none --sparse https://github.com/kenzok8/openwrt-daede package/community/openwrt-daede
+        git -C package/community/openwrt-daede sparse-checkout set vmlinux-btf
+        ./scripts/feeds update -i packages luci kenzo small
+        
     - name: Update feeds
       run: cd openwrt && ./scripts/feeds update -a
 
