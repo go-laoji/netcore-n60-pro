@@ -58,6 +58,23 @@ jobs:
         git clone -b $REPO_BRANCH --single-branch --filter=blob:none $REPO_URL openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
+    - name: Restore OpenWrt build cache
+      id: openwrt-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          /workdir/openwrt/dl
+          /workdir/openwrt/.ccache
+        key: openwrt-${{ runner.os }}-${{ runner.arch }}-${{ env.REPO_BRANCH }}-${{ github.sha }}
+        restore-keys: |
+          openwrt-${{ runner.os }}-${{ runner.arch }}-${{ env.REPO_BRANCH }}-
+
+    - name: Configure compiler cache
+      run: |
+        mkdir -p /workdir/openwrt/dl /workdir/openwrt/.ccache
+        CCACHE_DIR=/workdir/openwrt/.ccache ccache --max-size=2G
+        CCACHE_DIR=/workdir/openwrt/.ccache ccache --zero-stats
+
     - name: Load custom feeds
       run: |
         [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
@@ -77,7 +94,9 @@ jobs:
         sed -i 's/+USE_APK:wget-any +!USE_APK:wget/+wget/' feeds/kenzo/luci-theme-argon/Makefile
         git clone https://github.com/kenzok8/golang -b 1.26 feeds/packages/lang/golang
         git clone --depth=1 --filter=blob:none --sparse https://github.com/kenzok8/openwrt-daede package/community/openwrt-daede
-        git -C package/community/openwrt-daede sparse-checkout set vmlinux-btf
+        git -C package/community/openwrt-daede sparse-checkout set daed luci-app-daede vmlinux-btf
+        test -f package/community/openwrt-daede/daed/Makefile
+        test -f package/community/openwrt-daede/luci-app-daede/Makefile
         ./scripts/feeds update -i packages luci kenzo small
         
     - name: Update feeds
@@ -99,6 +118,10 @@ jobs:
       run: |
         cd openwrt
         make defconfig
+        grep -qx 'CONFIG_CCACHE=y' .config || {
+          echo "::error title=Compiler cache disabled::CONFIG_CCACHE was dropped by make defconfig"
+          exit 1
+        }
         make download -j8
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
@@ -113,6 +136,19 @@ jobs:
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
         [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
         echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+
+    - name: Show compiler cache statistics
+      if: steps.compile.outputs.status == 'success'
+      run: CCACHE_DIR=/workdir/openwrt/.ccache ccache --show-stats
+
+    - name: Save OpenWrt build cache
+      if: steps.compile.outputs.status == 'success' && steps.openwrt-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: |
+          /workdir/openwrt/dl
+          /workdir/openwrt/.ccache
+        key: openwrt-${{ runner.os }}-${{ runner.arch }}-${{ env.REPO_BRANCH }}-${{ github.sha }}
 
     - name: Check space usage
       if: (!cancelled())
