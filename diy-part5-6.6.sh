@@ -19,6 +19,27 @@
 # Modify hostname
 #sed -i 's/OpenWrt/P3TERX-Router/g' package/base-files/files/bin/config_generate
 
+# libxcrypt 4.4.36 enables -Werror by default, which turns warnings from the
+# OpenWrt fortify headers into build errors. Keep fortify enabled and disable
+# only libxcrypt's warnings-as-errors behavior.
+LIBXCRYPT_MAKEFILE="feeds/packages/libs/libxcrypt/Makefile"
+if [ ! -f "$LIBXCRYPT_MAKEFILE" ]; then
+    echo "libxcrypt Makefile not found: $LIBXCRYPT_MAKEFILE" >&2
+    exit 1
+fi
+
+if ! grep -qxF 'CONFIGURE_ARGS += --disable-werror' "$LIBXCRYPT_MAKEFILE"; then
+    sed -i.bak '/BuildPackage,libxcrypt/i\
+CONFIGURE_ARGS += --disable-werror
+' "$LIBXCRYPT_MAKEFILE"
+    rm -f "${LIBXCRYPT_MAKEFILE}.bak"
+fi
+
+if ! grep -qxF 'CONFIGURE_ARGS += --disable-werror' "$LIBXCRYPT_MAKEFILE"; then
+    echo "Failed to disable libxcrypt warnings as errors" >&2
+    exit 1
+fi
+
 # 添加组播防火墙规则
 # cat >> package/network/config/firewall/files/firewall.config <<EOF
 # config rule
